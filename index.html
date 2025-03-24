@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liveness Check</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .capture-btn {
+            transition: all 0.3s ease;
+        }
+        .capture-btn:hover {
+            transform: scale(1.05);
+        }
+        #video {
+            transform: scaleX(-1);
+        }
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-blue-600">Liveness Check</h1>
+        
+        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
+            <div class="flex flex-col items-center space-y-4">
+                <video id="video" class="w-full max-w-lg rounded-lg shadow-md" autoplay playsinline></video>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                    <div class="flex flex-col items-center">
+                        <button onclick="capture('front')" class="capture-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full">
+                            <i class="bi bi-arrow-up"></i> Front
+                        </button>
+                        <img id="frontImage" class="preview-image mt-2 rounded-lg hidden" alt="Front capture">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="capture('left')" class="capture-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full">
+                            <i class="bi bi-arrow-left"></i> Left
+                        </button>
+                        <img id="leftImage" class="preview-image mt-2 rounded-lg hidden" alt="Left capture">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="capture('right')" class="capture-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full">
+                            <i class="bi bi-arrow-right"></i> Right
+                        </button>
+                        <img id="rightImage" class="preview-image mt-2 rounded-lg hidden" alt="Right capture">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="capture('down')" class="capture-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full">
+                            <i class="bi bi-arrow-down"></i> Down
+                        </button>
+                        <img id="downImage" class="preview-image mt-2 rounded-lg hidden" alt="Down capture">
+                    </div>
+                </div>
+
+                <div id="status" class="text-center mt-4 text-lg font-semibold text-gray-700"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video;
+        let captures = {
+            front: null,
+            left: null,
+            right: null,
+            down: null
+        };
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: "user",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video = document.getElementById('video');
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                document.getElementById('status').textContent = "Error accessing camera. Please make sure you've granted camera permissions.";
+                document.getElementById('status').classList.add('text-red-500');
+            }
+        }
+
+        function capture(position) {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Flip the image horizontally for selfie view
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            captures[position] = imageData;
+            
+            // Show preview
+            const previewImg = document.getElementById(`${position}Image`);
+            previewImg.src = imageData;
+            previewImg.classList.remove('hidden');
+            
+            // Update status
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const totalCaptures = Object.values(captures).filter(cap => cap !== null).length;
+            const statusElement = document.getElementById('status');
+            
+            if (totalCaptures === 4) {
+                statusElement.textContent = "All captures completed! ✅";
+                statusElement.classList.add('text-green-500');
+            } else {
+                statusElement.textContent = `${totalCaptures}/4 captures completed`;
+                statusElement.classList.remove('text-green-500');
+            }
+        }
+
+        // Initialize camera when page loads
+        window.addEventListener('load', initCamera);
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
